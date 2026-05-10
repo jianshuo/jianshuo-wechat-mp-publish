@@ -121,6 +121,19 @@ cp -r /tmp/g/skills/gpt-image-2-skill ~/.claude/skills/
 - **推荐**：Codex `~/.codex/auth.json`（ChatGPT Plus 计划即可，**不需要 OpenAI 组织验证**，gpt-image-2 的中文字渲染明显比 gpt-image-1 准确）
 - 或 `OPENAI_API_KEY`（需要在 platform 验证组织才能用 gpt-image-2）
 
+**鉴权预检**（在跑 `gen-cover-ai.sh` 之前必做，避免烧 API 又拿不到结果）：
+
+```bash
+[ -f ~/.codex/auth.json ] && echo "✓ Codex auth (recommended, free on ChatGPT Plus)" \
+  || [ -n "$OPENAI_API_KEY" ] && echo "✓ OPENAI_API_KEY (needs org verification for gpt-image-2)" \
+  || echo "✗ NO AUTH — set up one of: ~/.codex/auth.json (recommended) OR export OPENAI_API_KEY=..."
+```
+
+如果两个都没有，**不要跑** `gen-cover-ai.sh`（它会失败但消息可能模糊）。直接告诉用户：
+- 推荐路径：跑 `codex login` 走 ChatGPT Plus 配额（免费、不用组织验证）
+- 备选路径：去 platform.openai.com 拿 API key 并完成组织验证（gpt-image-2 必需）
+- 临时路径：选 B 文字封面（`render-cover.sh`），无需任何 API
+
 **目标字词**的选择：文章标题往往是长短语（如「AI 能力的三个简单层次」），但 prompt 模板对单字 / 两字词更友好。可以建议用户挑核心概念字词：
 
 > 目标字词用什么？默认是文章标题。建议挑一个核心概念字词（1–4 字），比如「AI 能力的三个简单层次」可以用「三层」或「层次」。
