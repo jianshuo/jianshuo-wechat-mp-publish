@@ -5,7 +5,7 @@ Claude Code skill for writing and publishing **微信公众号 (WeChat Official 
 Built around three principles:
 
 1. **Light polish, no rewriting.** Preserve the author's voice. The skill fixes typos and paragraph spacing; it does not "improve" the prose.
-2. **Two images per article.** A 2.45:1 typographic cover (题图) for the WeChat editor's cover field, and an aspect-ratio-flexible cartoon illustration (解释图) for the article body.
+2. **Two images per article.** A 2.35:1 typographic cover (题图) for the WeChat editor's cover field, and an aspect-ratio-flexible cartoon illustration (解释图) for the article body.
 3. **Tier-1 publishing assist.** Open browser, reveal cover in Finder, push body HTML to clipboard as rich text — paste into mp.weixin.qq.com in ~2 minutes.
 
 ## What it does
@@ -27,7 +27,7 @@ articles/2026-05-09-my-slug/
 ├── original.md          # your raw input (backup)
 ├── article.md           # lightly polished markdown
 ├── article.html         # rich-text HTML for pasting
-├── cover.png            # 题图 900×383 (2.45:1, strict)
+├── cover.png            # 题图 900×383 (2.35:1, strict)
 ├── illustration.png     # 解释图 (any ratio, AI picks)
 ├── meta.json            # title / summary / author / slug
 └── cover-prompt-used.txt
@@ -64,7 +64,7 @@ The skill does most of the work for you. After it asks 1–2 clarifying question
 ```bash
 DIR=articles/YYYY-MM-DD-slug
 
-# Generate the typographic cover (2.45:1, auto-cropped to 900×383)
+# Generate the typographic cover (2.35:1, auto-cropped to 900×383)
 ~/.claude/skills/jianshuo-wechat-mp-publish/gen-cover-ai.sh "$DIR" "目标字词"
 
 # Generate the cartoon explanation image (any aspect ratio)
@@ -80,7 +80,7 @@ Each script is idempotent — re-run it to get a different result (image generat
 
 Both image generators read prompt templates that you can edit:
 
-- **`cover-prompt.md`** — the cover (题图) design philosophy, with `[目标字词]` placeholder. Locked to 2.45:1.
+- **`cover-prompt.md`** — the cover (题图) design philosophy, with `[目标字词]` placeholder. Locked to 2.35:1.
 - **`illustration-prompt.md`** — the illustration (解释图) style guide, with `[文章内容]` placeholder. Aspect ratio chosen by the model based on content.
 
 Environment variables (optional):
@@ -103,7 +103,7 @@ Environment variables (optional):
 
 ## Why two images?
 
-The 题图 is the cover the reader sees in the WeChat feed *before* clicking. It needs maximum punch in 2.35–2.45:1. Typography wins here.
+The 题图 is the cover the reader sees in the WeChat feed *before* clicking. It needs maximum punch in 2.35:1 (900×383, the exact dimensions of the WeChat cover slot). Typography wins here.
 
 The 解释图 lives inside the article. It needs to teach. A cartoon explanation often helps readers grasp the idea before reading the text. Forcing this image into the cover ratio destroys it. Different jobs, different aspect ratios.
 

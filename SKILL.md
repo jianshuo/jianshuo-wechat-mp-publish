@@ -76,7 +76,7 @@ description: Use when the user wants to write or publish a 微信公众号 (WeCh
 
 每篇文章配 **两张图**:
 
-- **题图 cover.png** — 进入文章前的封面,**严格 2.45:1**(900×383),进 WeChat 编辑器封面字段。强字体、强构图、文字主导
+- **题图 cover.png** — 进入文章前的封面,**严格 2.35:1**(900×383, 即 900÷383=2.349),进 WeChat 编辑器封面字段。强字体、强构图、文字主导
 - **解释图 illustration.png** — 正文里的配图,**比例由内容决定**(模型自选),帮读者一眼看懂文章核心结构。扁平卡通,有标签和流程
 
 **先问用户题图怎么处理**:
@@ -146,7 +146,7 @@ cp -r /tmp/g/skills/gpt-image-2-skill ~/.claude/skills/
 articles/2026-05-09-{slug}/
 ├── article.md           # 润色后的 markdown 源文件
 ├── article.html         # 转成 HTML，直接粘贴用
-├── cover.png            # 题图 900×383 (2.45:1 严格)
+├── cover.png            # 题图 900×383 (2.35:1 严格)
 ├── illustration.png     # 解释图（任意比例，模型自选）
 ├── meta.json            # { title, summary, author, date, slug }
 └── original.md          # 用户原始输入，备份
@@ -227,7 +227,7 @@ article.md 是源文件，下次改用这个。
 ├── cover-template.html            # 文字题图模板（HTML+CSS）
 ├── render-cover.sh                # 渲染文字题图（免费、即时）
 ├── cover-prompt.md                # AI 题图 prompt 模板（[目标字词] 占位符）
-├── gen-cover-ai.sh                # 题图: 2.45:1 强约束, 自动裁到 900×383
+├── gen-cover-ai.sh                # 题图: 2.35:1 强约束, 自动裁到 900×383
 ├── illustration-prompt.md         # AI 解释图 prompt 模板（[文章内容] 占位符）
 ├── gen-illustration.sh            # 解释图: 比例自适应, 不裁剪
 └── publish.sh                     # Tier 1 发布助手（开浏览器 + 剪贴板）
