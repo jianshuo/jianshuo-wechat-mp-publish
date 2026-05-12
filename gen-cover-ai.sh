@@ -7,9 +7,9 @@
 #   - Pass a short generation directive as --prompt
 #   - Output 1536x1024, then sips-crop to 900x383 (2.35:1 微信主封面)
 #
-# Provider routing handled by gpt-image-2-skill (auto: Codex auth.json or
-# OPENAI_API_KEY). Codex path works on ChatGPT Plus accounts without OpenAI
-# organization verification.
+# Provider: forced --provider codex (requires ~/.codex/auth.json). The OpenAI
+# API key path is intentionally NOT supported — --instructions is codex-only,
+# and direct API calls bypass Codex's prompt distillation.
 #
 # Usage:
 #   gen-cover-ai.sh <article-folder> [target-word]
@@ -67,10 +67,10 @@ QUALITY="${WECHAT_PUBLISH_IMAGE_QUALITY:-high}"
 
 echo "calling gpt-image-2-skill (target: '$WORD', size: $SIZE, quality: $QUALITY)" >&2
 
-# Run the wrapper. It auto-resolves provider (Codex via ~/.codex/auth.json or
-# OpenAI via OPENAI_API_KEY).
+# Codex-only: --instructions is supported solely by the codex provider, and we
+# do not allow OPENAI_API_KEY fallback. ~/.codex/auth.json must exist.
 cd "$HOME/.claude/skills/gpt-image-2-skill"
-RESULT=$(node "$WRAPPER" --json images generate \
+RESULT=$(node "$WRAPPER" --json --provider codex images generate \
   --instructions "$INSTRUCTIONS" \
   --prompt "$GEN_PROMPT" \
   --out "$RAW_OUT" \
@@ -101,7 +101,7 @@ rm -f "$TMP_SCALED"
   echo "target_word: $WORD"
   echo "size: $SIZE"
   echo "quality: $QUALITY"
-  echo "via: gpt-image-2-skill (auto provider)"
+  echo "via: gpt-image-2-skill (codex provider only)"
   echo "generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 } > "$ARTICLE_DIR/cover-prompt-used.txt"
 

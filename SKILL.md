@@ -1,9 +1,9 @@
 ---
-name: jianshuo-wechat-mp-publish
-description: Use when the user wants to write or publish a 微信公众号 (WeChat Official Account) article — they share rough thoughts, a draft, or notes and ask for help polishing, generating a cover image (题图) and explanation illustration (解释图), or preparing the article for upload to mp.weixin.qq.com. Triggers include "写一篇微信文章", "公众号", "润色", "题图", "发公众号", "/jianshuo-wechat-mp-publish".
+name: wjs-wechat-publish
+description: Use when the user wants to write or publish a 微信公众号 (WeChat Official Account) article — they share rough thoughts, a draft, or notes and ask for help polishing, generating a cover image (题图) and explanation illustration (解释图), or preparing the article for upload to mp.weixin.qq.com. Triggers include "写一篇微信文章", "公众号", "润色", "题图", "发公众号", "/wjs-wechat-publish".
 ---
 
-# jianshuo-wechat-mp-publish
+# wjs-wechat-publish
 
 帮助用户写微信公众号文章。**轻润色，不重写。** 自动生成题图和解释图，输出可直接粘贴到公众号后台的内容包。
 
@@ -83,28 +83,19 @@ description: Use when the user wants to write or publish a 微信公众号 (WeCh
 
 > 题图想怎么处理？
 > A) 我有图片，我提供路径
-> B) 用文字封面（标题 + 简洁背景，HTML/CSS 渲染，免费、即时）
-> C) **AI 生成（GPT Image，按词义出概念图，需 OPENAI_API_KEY，每张约 $0.05–0.20）**
-> D) 跳过，待会儿手动处理
+> B) **AI 生成（gpt-image-2 via Codex，按词义出概念图，每张约 $0.05–0.20）**
+> C) 跳过，待会儿手动处理
 
 **如果选 A**：把用户提供的图片复制到文章目录，重命名为 `cover.png`/`cover.jpg`。
 
 **如果选 B**：
 
 ```bash
-~/.claude/skills/jianshuo-wechat-mp-publish/render-cover.sh "标题文字" "副标题或日期" /path/to/output/cover.png
-```
-
-输出 900×383 PNG，2.35:1 微信主封面比例。
-
-**如果选 C**：
-
-```bash
-~/.claude/skills/jianshuo-wechat-mp-publish/gen-cover-ai.sh <article-folder> ["目标字词"]
+~/.claude/skills/wjs-wechat-publish/gen-cover-ai.sh <article-folder> ["目标字词"]
 ```
 
 - 不传第二个参数时，从 `meta.json` 取 `title` 当目标字词
-- 内部调用 `gpt-image-2-skill`（自动选 provider：Codex `~/.codex/auth.json` 或 `OPENAI_API_KEY`）
+- 内部调用 `gpt-image-2-skill`，**强制走 `--provider codex`**（不再支持 OpenAI API key fallback）
 - 默认尺寸 `1536x1024`（最接近 2.35:1 的 landscape），自动 sips 居中裁到 900×383
 - 原图保存为 `cover-raw.png`，裁剪后是 `cover.png`
 - `cover-prompt.md` 作为 `--instructions`（设计哲学），短生成指令作为 `--prompt`——这样 gpt-5.4 能消化长 prompt 后再调 image_generation 工具
@@ -117,9 +108,9 @@ git clone https://github.com/Wangnov/gpt-image-2-skill /tmp/g
 cp -r /tmp/g/skills/gpt-image-2-skill ~/.claude/skills/
 ```
 
-并且至少有以下一种鉴权：
-- **推荐**：Codex `~/.codex/auth.json`（ChatGPT Plus 计划即可，**不需要 OpenAI 组织验证**，gpt-image-2 的中文字渲染明显比 gpt-image-1 准确）
-- 或 `OPENAI_API_KEY`（需要在 platform 验证组织才能用 gpt-image-2）
+并且必须有 Codex 鉴权：
+- **唯一支持**：Codex `~/.codex/auth.json`（ChatGPT Plus 计划即可，**不需要 OpenAI 组织验证**，gpt-image-2 的中文字渲染明显比 gpt-image-1 准确）
+- **不再支持** `OPENAI_API_KEY` 直连（`--instructions` 仅 Codex provider 支持，且 API 模式会绕过 Codex 的 prompt 优化）
 
 **目标字词**的选择：文章标题往往是长短语（如「AI 能力的三个简单层次」），但 prompt 模板对单字 / 两字词更友好。可以建议用户挑核心概念字词：
 
@@ -128,7 +119,7 @@ cp -r /tmp/g/skills/gpt-image-2-skill ~/.claude/skills/
 **然后生成解释图**(无需问用户,自动跑):
 
 ```bash
-~/.claude/skills/jianshuo-wechat-mp-publish/gen-illustration.sh <article-folder>
+~/.claude/skills/wjs-wechat-publish/gen-illustration.sh <article-folder>
 ```
 
 - 读 `article.md` 全文,作为 instructions 传给 gpt-image-2
@@ -166,55 +157,74 @@ pandoc article.md -f markdown -t html -o article.html
 # 用 Python 的 markdown 包 / Node 的 marked / 或手写最简实现
 ```
 
-### Step 6: 发布（Tier 1 自动化）
+### Step 6: 发布（用 `upload-draft.sh` 走 md2wechat 底层）
 
-文章包准备好后，**告诉用户运行**：
-
-```bash
-~/.claude/skills/jianshuo-wechat-mp-publish/publish.sh <workspace>/articles/YYYY-MM-DD-{slug}
-```
-
-或如果用户已经 `cd` 进文章目录：
+文章包准备好后，跑一行就能把文章作为草稿推到公众号后台：
 
 ```bash
-~/.claude/skills/jianshuo-wechat-mp-publish/publish.sh
+~/.claude/skills/wjs-wechat-publish/upload-draft.sh \
+  <workspace>/articles/YYYY-MM-DD-{slug}
 ```
 
-`publish.sh` 自动做的事：
+脚本内部做了 4 件事（用 `md2wechat` 的低层命令，绕过它高层 `convert` 的 API key 限制）：
 
-1. 打开浏览器到 https://mp.weixin.qq.com/
-2. 在 Finder 中显示 cover.png（拖进编辑器封面区）
-3. 把 article.html 在浏览器另开一个标签页（备用，rich-text 复制源）
-4. 把正文 HTML 以 **rich text 格式**放到剪贴板（Cmd+V 直接出排版，不是源码）
-5. 终端显示交互菜单，按 1/2/3/4 在剪贴板里切换：
-   - `1` 标题
-   - `2` 作者
-   - `3` 摘要
-   - `4` 正文 HTML（重新放回剪贴板）
-   - `q` 退出
+1. `md2wechat upload_image cover.png` → 拿到 `thumb_media_id`
+2. `md2wechat upload_image illustration.png` → 拿到 WeChat CDN `wechat_url`
+3. 从 `article.md` 生成 `content.html`（去掉 frontmatter 和正文 H1，段落加内联样式，`./illustration.png` 替换成 CDN URL），再从 `meta.json` 装出 `draft.json`
+4. `md2wechat create_draft draft.json` → 返回草稿 `media_id`
 
-**典型用户流程（用了 publish.sh 之后约 2 分钟）：**
-1. 终端跑 publish.sh
-2. 切到浏览器 → 扫码登录公众号
-3. 点"新的创作 → 图文消息"
-4. 编辑器：正文区 Cmd+V（默认剪贴板就是 rich-text 正文）
-5. 切回终端按 `1` → 切到浏览器 → 标题字段 Cmd+V
-6. 终端按 `2` → 浏览器作者字段 Cmd+V
-7. 终端按 `3` → 浏览器摘要字段 Cmd+V
-8. Finder 里把 cover.png 拖到封面区
-9. 手机预览，发布
+**前置依赖**：
+- `md2wechat` CLI 已安装并配置好 `WECHAT_APPID` + `WECHAT_SECRET`（`md2wechat config show` 验证）
+- **当前公网 IP 已加进公众号后台白名单**：mp.weixin.qq.com → 设置与开发 → 基本配置 → IP 白名单。漏掉这一步会返回 `errcode=40164`，加白名单几十秒生效
+- 详细命令、provider 选择、品牌档案，参考 `/md2wechat` skill
 
-**如果剪贴板正文粘出来排版乱了**：浏览器切到第二个 article.html 标签页 → Cmd+A → Cmd+C → 粘进编辑器（这是 rich-text 复制最可靠的来源）。
+**为什么不用 `md2wechat convert --draft`？** 实测发现这条「一键」路径在默认配置下走不通：
+- `--mode api`（默认）需要 `MD2WECHAT_API_KEY`（md2wechat.cn 付费云渲染服务），普通用户没有
+- `--mode ai` 不直接出 HTML，而是返回一份 prompt 让外部 AI 渲染，不闭环
+
+所以本 skill 用 `upload_image` + `create_draft` 两条底层命令组合，自己拼 HTML 和 draft JSON。`upload-draft.sh` 把这套流程封装成一行。
+
+**Step 6.1 — 可选：先 inspect / preview 检查**
+
+```bash
+cd <workspace>/articles/YYYY-MM-DD-{slug}
+md2wechat inspect article.md      # 检查元数据、字数、发布就绪状态
+md2wechat preview article.md      # 生成本地 HTML 预览（degraded 模式，能看个大概）
+```
+
+发布前如想确认元数据有没有超长、摘要是不是空，跑 `inspect`。否则直接跳到 6.2。
+
+**Step 6.2 — 一行发布**
+
+```bash
+~/.claude/skills/wjs-wechat-publish/upload-draft.sh \
+  /Users/jianshuo/code/wechat-publish/articles/YYYY-MM-DD-{slug}
+```
+
+成功后输出 `draft media_id`，并在文章目录里留下 `content.html` 和 `draft.json` 两个产物，便于复查或下次直接 `md2wechat create_draft draft.json` 重发。
+
+**Step 6.3 — 后台预览发布**
+
+登录 https://mp.weixin.qq.com → 草稿箱 → 找到刚上传的文章 → 手机预览 → 发布。
+
+**如果出错**：
+- `errcode=40164 not in whitelist`：把当前公网 IP 加进 WeChat MP 后台白名单
+- `errcode=45004`：`meta.json` 的 `summary` 为空或太短
+- 封面相关：确认 `cover.png` 路径正确、尺寸 ≥ 900×383
+- token / appid：`md2wechat config validate` 看配置
+
+**Optional — 高级排版**：如需第一屏判断、CTA、作者名片等模块，在 `article.md` 加 `:::block` 语法（需要 `MD2WECHAT_API_KEY` 才能渲染）。本 skill 默认不加，保持作者原文清洁。
 
 输出给用户的最后一段话，固定格式：
 
 ```
-准备好了。文章在 articles/2026-05-09-{slug}/
+准备好了。文章在 articles/YYYY-MM-DD-{slug}/
 
-发布：
-  ~/.claude/skills/jianshuo-wechat-mp-publish/publish.sh articles/2026-05-09-{slug}
+发布（一行）：
+  ~/.claude/skills/wjs-wechat-publish/upload-draft.sh \
+    articles/YYYY-MM-DD-{slug}
 
-它会打开浏览器、显示题图、把正文推到剪贴板。在终端按数字键切换标题/作者/摘要。
+成功后到 mp.weixin.qq.com 草稿箱预览 / 发布。
 
 article.md 是源文件，下次改用这个。
 ```
@@ -222,19 +232,22 @@ article.md 是源文件，下次改用这个。
 ## File Layout (skill 自身)
 
 ```
-~/.claude/skills/jianshuo-wechat-mp-publish/
+~/.claude/skills/wjs-wechat-publish/
 ├── SKILL.md                       # 本文件
-├── cover-template.html            # 文字题图模板（HTML+CSS）
-├── render-cover.sh                # 渲染文字题图（免费、即时）
 ├── cover-prompt.md                # AI 题图 prompt 模板（[目标字词] 占位符）
 ├── gen-cover-ai.sh                # 题图: 2.35:1 强约束, 自动裁到 900×383
 ├── illustration-prompt.md         # AI 解释图 prompt 模板（[文章内容] 占位符）
 ├── gen-illustration.sh            # 解释图: 比例自适应, 不裁剪
-└── publish.sh                     # Tier 1 发布助手（开浏览器 + 剪贴板）
+└── upload-draft.sh                # Step 6 主路径：upload_image × 2 + create_draft
 ```
 
 依赖的外部 skill：
-- `gpt-image-2-skill`（github.com/Wangnov/gpt-image-2-skill）—— gen-cover-ai.sh 走这里调 gpt-image-2
+- `gpt-image-2-skill`（github.com/Wangnov/gpt-image-2-skill）—— gen-cover-ai.sh / gen-illustration.sh 走这里调 gpt-image-2，**只走 `--provider codex`**（两个脚本已硬编码），需要 `~/.codex/auth.json`。不支持 OpenAI API key 直连
+- `/md2wechat` skill / `md2wechat` CLI —— upload-draft.sh 用它的 `upload_image` + `create_draft` 命令（需要 `WECHAT_APPID` / `WECHAT_SECRET`，且当前 IP 在白名单里）
+
+> 注：仓库里仍保留 `publish.sh`（浏览器 + 剪贴板手动发布流），仅作为 md2wechat 配置未就绪 / 不能加 IP 白名单时的备用方案。本 skill 默认路径不再使用它。
+
+> Auto-publish: 本 skill 由 `~/.claude/skills-publish-hook.sh` 自动同步到 [github.com/jianshuo/claude-skills](https://github.com/jianshuo/claude-skills)（每次编辑后自动 commit + push）。
 
 ## Polish Heuristics (具体到字)
 
@@ -287,8 +300,8 @@ article.md 是源文件，下次改用这个。
 3. 写 `original.md`（用户原始输入）
 4. 写 `article.md`（润色版）→ 列 diff 给用户
 5. 用 AskUserQuestion 问标题候选
-6. 用 AskUserQuestion 问题图选择
-7. 渲染题图（如选 B）
+6. 用 AskUserQuestion 问题图选择（A 用户提供 / B AI 生成 / C 跳过）
+7. 生成题图（如选 B 跑 gen-cover-ai.sh）+ 解释图（自动跑 gen-illustration.sh）
 8. 生成 `article.html`、`meta.json`
 9. 输出发布指引
 
