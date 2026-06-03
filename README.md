@@ -1,4 +1,4 @@
-# wjs-wechat-publish
+# wjs-publishing-wechat
 
 Claude Code skill for writing and publishing **微信公众号 (WeChat Official Account)** articles, with AI-generated covers, AI-generated explanation illustrations, and a one-command upload helper.
 
@@ -36,10 +36,10 @@ articles/2026-05-09-my-slug/
 ## Install
 
 ```bash
-git clone https://github.com/jianshuo/wjs-wechat-publish ~/.claude/skills/wjs-wechat-publish
+git clone https://github.com/jianshuo/wjs-publishing-wechat ~/.claude/skills/wjs-publishing-wechat
 ```
 
-Then in Claude Code, the skill auto-fires on prompts like "写一篇公众号", "润色", "准备发布", or "/wjs-wechat-publish".
+Then in Claude Code, the skill auto-fires on prompts like "写一篇公众号", "润色", "准备发布", or "/wjs-publishing-wechat".
 
 ## Dependencies
 
@@ -65,13 +65,13 @@ The skill does most of the work for you. After it asks 1–2 clarifying question
 DIR=articles/YYYY-MM-DD-slug
 
 # Generate the typographic cover (2.35:1, auto-cropped to 900×383)
-~/.claude/skills/wjs-wechat-publish/gen-cover-ai.sh "$DIR" "目标字词"
+~/.claude/skills/wjs-publishing-wechat/scripts/gen-cover-ai.sh "$DIR" "目标字词"
 
 # Generate the cartoon explanation image (any aspect ratio)
-~/.claude/skills/wjs-wechat-publish/gen-illustration.sh "$DIR"
+~/.claude/skills/wjs-publishing-wechat/scripts/gen-illustration.sh "$DIR"
 
 # Open browser, reveal cover, push HTML to clipboard
-~/.claude/skills/wjs-wechat-publish/publish.sh "$DIR"
+~/.claude/skills/wjs-publishing-wechat/scripts/publish.sh "$DIR"
 ```
 
 Each script is idempotent — re-run it to get a different result (image generations are stochastic).
@@ -80,8 +80,8 @@ Each script is idempotent — re-run it to get a different result (image generat
 
 Both image generators read prompt templates that you can edit:
 
-- **`cover-prompt.md`** — the cover (题图) design philosophy, with `[目标字词]` placeholder. Locked to 2.35:1.
-- **`illustration-prompt.md`** — the illustration (解释图) style guide, with `[文章内容]` placeholder. Aspect ratio chosen by the model based on content.
+- **`prompts/cover-prompt.md`** — the cover (题图) design philosophy, with `[目标字词]` placeholder. Locked to 2.35:1.
+- **`prompts/illustration-prompt.md`** — the illustration (解释图) style guide, with `[文章内容]` placeholder. Aspect ratio chosen by the model based on content.
 
 Environment variables (optional):
 - `WECHAT_PUBLISH_IMAGE_SIZE` — default `1536x1024`
@@ -92,13 +92,16 @@ Environment variables (optional):
 ```
 .
 ├── SKILL.md                    # how the skill behaves (its prompt)
-├── cover-prompt.md             # AI cover prompt template
-├── cover-template.html         # HTML/CSS fallback cover (no AI)
-├── render-cover.sh             # render the HTML/CSS cover
-├── gen-cover-ai.sh             # AI cover via gpt-image-2 → 900×383
-├── illustration-prompt.md      # AI illustration prompt template
-├── gen-illustration.sh         # AI illustration, no crop
-└── publish.sh                  # Tier-1 publish helper
+├── prompts/
+│   ├── cover-prompt.md         # AI cover prompt template
+│   └── illustration-prompt.md  # AI illustration prompt template
+└── scripts/
+    ├── gen-cover-ai.sh         # AI cover via gpt-image-2 → 900×383
+    ├── gen-illustration.sh     # AI illustration, no crop
+    ├── upload-draft.sh         # build content.html + create/update draft via md2wechat API
+    ├── publish.sh              # browser + clipboard publish helper
+    ├── pangu.py                # 盘古之白 spacing
+    └── …                       # comment-fetch / mass-send helpers
 ```
 
 ## Why two images?

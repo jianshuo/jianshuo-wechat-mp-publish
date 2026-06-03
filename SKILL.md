@@ -1,304 +1,244 @@
 ---
-name: wjs-wechat-publish
-description: Use when the user wants to write or publish a 微信公众号 (WeChat Official Account) article — they share rough thoughts, a draft, or notes and ask for help polishing, generating a cover image (题图) and explanation illustration (解释图), or preparing the article for upload to mp.weixin.qq.com. Triggers include "写一篇微信文章", "公众号", "润色", "题图", "发公众号", "/wjs-wechat-publish".
+name: wjs-publishing-wechat
+description: 当用户想写或发布微信公众号文章时使用——他们给出零散思路、草稿或笔记，请你润色、生成题图和解释图，或准备上传到 mp.weixin.qq.com。触发词："写一篇微信文章"、"公众号"、"润色"、"题图"、"发公众号"、"/wjs-publishing-wechat"。
 ---
 
-# wjs-wechat-publish
+# wjs-publishing-wechat
 
-帮助用户写微信公众号文章。**轻润色，不重写。** 自动生成题图和解释图，输出可直接粘贴到公众号后台的内容包。
+帮用户写微信公众号文章。**轻润色，不重写。** 自动生成题图和解释图，一行命令推草稿。
 
-## Core Principle
+## 核心原则
 
-**保留作者的语气和节奏。** 用户的思路和表达方式是文章的灵魂。你只做四件事：
+**保留作者的语气和节奏。** 你只做四件事：
 
 1. 修明显错字和重复字
-2. 调整段落（微信读者习惯短段落，每段 1–3 句）
+2. 调整段落（每段 1–3 句）
 3. 抚平特别拗口的句子（保守，能不动就不动）
 4. 准备配套素材（题图、标题候选、摘要）
 
-**不要做的事：**
-- 不要改变作者的用词偏好
-- 不要加 AI 味儿的连接词（"首先"、"其次"、"综上所述"、"总而言之"、"值得注意的是"）
-- 不要把口语改成书面语
-- 不要加 emoji（除非原文有）
-- 不要重新组织段落顺序
-- 不要"提升"作者的表达——他写他的，你只是清洁工
+**不要做**：改用词偏好；加 AI 味连接词（"首先 / 其次 / 综上所述 / 值得注意的是"）；把口语改书面；加 emoji；重组段落顺序；"提升"作者表达。
 
-## When This Skill Fires
+**改动尺度**：改的字数超过原文 5% 就是改太多了，退回去。
 
-- 用户提供一段思路、草稿、或语音转写文字
-- 用户说"帮我写一篇公众号"、"润色一下"、"准备发布"
-- 用户在公众号写作工作目录下工作（默认 `~/wechat-publish/` 或 `~/code/wechat-publish/`，可由用户配置）
+## 长度与例子（硬约束）
 
-## Workflow
+**默认 800–1000 字。** 第一稿就按预算写，不要写完再砍——砍出来的文章会残留拼接感。超 1200 回去再砍一轮。
+
+写例子段时过这把尺：**这个例子是真具体（真事 / 真人 / 真数字），还是为演示框架编的？** 后者直接删，让 `illustration.png` 承担"演示结构"。
+
+- **优先保留**：开头钩子 + 核心框架 + 1 句点睛 + 软着陆结尾
+- **优先砍掉**：演示性例子、重复阐释、"怎么用 / 入口在哪"这类 instructional 段落
+
+**默认不写 `## 后注`**，除非真有必要的致谢或来源标注，否则正文最后落点收束即可。
+
+数字数：
+
+```bash
+python3 -c "import re; t=open('article.md').read(); t=re.sub(r'\!\[.*?\]\(.*?\)','',t); print(len(re.findall(r'[一-鿿]',t)) + len(re.findall(r'[A-Za-z]+',t)))"
+```
+
+## 加粗加红（每篇必须有）
+
+`upload-draft.sh` 把 `**...**` 渲染成**红色粗体**——作者刻意要的视觉重点。**每篇正文都必须有合理加粗，一处都没有 = 没写完。**
+
+- **2–4 处**，打在点睛句、关键结论、核心概念词上
+- 优先加：每节一句话结论、全文情绪落点、读者最该记住的那句
+- 不要加：整段、过渡句、罗列项（命令用 `` `code` ``）；标题（H2/H3）已有字重，不再 `**` 包
+
+## 盘古之白
+
+中英之间留空格——「用 AI 写 skill」。`upload-draft.sh` 自动跑 `scripts/pangu.py`，Claude 不用手动。
+
+## 命令 / 代码：独立成段，用代码样式
+
+正文出现安装 / 运行命令时**默认拉出来单独成段**，别混在叙述句里写成 inline。两种写法：
+
+- **首选**——淡底色代码块（raw HTML 块，整段一行，内部不能有空行）：
+  ```
+  <section style="background:#f6f8fa;border-radius:6px;padding:14px 16px;overflow-x:auto;font-family:Menlo,Consolas,monospace;font-size:14px;line-height:1.8;color:#24292e;">npm install -g xxx<br>xxx run</section>
+  ```
+- 或 fenced ```` ```bash ```` 块，脚本转成独立 `<p><code>…</code></p>`
+
+句中只提命令名 → inline `` `code` `` 即可。
+
+## 介绍 skill 的文章：末尾必须附安装方法
+
+**触发条件**：这篇在介绍 / 推荐某个具体的 Claude Code skill。
+
+**前置 — 确认 skill 已发布**：王建硕自己的 `wjs-*` skill 由 `~/.claude/skills-publish-hook.sh` 自动 push 到 [github.com/jianshuo/claude-skills](https://github.com/jianshuo/claude-skills)，用 `gh api repos/jianshuo/claude-skills/contents/<skill-name>` 确认。别人的 skill 先确认在公开 git repo 里。
+
+**末尾附下面这段**（`<SKILL_NAME>` 替换成实际名）：
+
+```markdown
+## 安装方法
+
+不用复制命令。打开你用的 AI agent——Claude Code、Codex、Kimi Code、OpenClaw 都可以，对它说一句：
+
+> 安装 https://github.com/jianshuo/claude-skills/blob/main/<SKILL_NAME>/SKILL.md
+
+它会自己 fetch、放到 skill 目录里、提示你重启对话。
+
+用 Hermes 的话直接命令行：
+
+\`\`\`bash
+hermes skills install https://github.com/jianshuo/claude-skills/blob/main/<SKILL_NAME>/SKILL.md
+\`\`\`
+
+装完之后，对 agent 说一句「<一句最自然的触发语，紧扣这个 skill 的入口>」，就能用。
+```
+
+规则：
+1. 这段**不计入** 800–1000 字预算
+2. URL 用 `github.com/<owner>/<repo>/blob/main/<path>`——浏览器能直接看，LLM agent 也能从 blob URL 抽 markdown
+3. Hermes 单独列**命令行**，因为它是 registry CLI 而非 chat agent
+4. 最后那句触发语按当前 skill 实际入口写，**不要漏**
+5. 通常放最后；有 `## 后注` 则放后注之前
+
+## 工作流
 
 ### Step 0: 接收输入
 
-用户会以以下形式给你内容：
-- 完整草稿（最常见）
-- 几段散乱的思路 / bullet points
-- 一段长文字，没有分段
-- 语音转写（可能有错字、重复）
-
-如果输入太散，**问一个问题**："这是想写一篇文章，还是几个独立想法？" —— 但只问这一次。
+输入形式：完整草稿 / 散乱思路 / 长段没分段 / 语音转写（可能有错字）。太散就**问一个问题**："想写一篇文章，还是几个独立想法？"——只问这一次。
 
 ### Step 1: 轻润色
 
-打开一个 markdown 文件，把用户的内容粘进去。然后**只**做下面这些：
-
-- 修错字（"的得地"乱用、同音字错字、重复字"我我"）
-- 段落切分：每 1–3 句一段。微信里长段落很难读
-- 拗口的地方做最小改动。如果改动后语气变了，宁可不改
-- 标点统一：中文用全角逗号句号，英文/数字之间空格
-- 保留原本的开头和结尾——这是作者的标志性特征
-
-**改动的尺度参考：** 如果你改的字数超过原文的 5%，你改太多了。退回去。
+- 修错字（"的得地"、同音字、"我我"重复字）
+- 每 1–3 句一段
+- 拗口处做最小改动；改完语气变了宁可不改
+- 标点：中文全角，英文 / 数字间空格
+- 保留原本开头和结尾
 
 ### Step 2: 标题候选
 
-给用户 **3 个标题候选**：
+给 **3 个候选**：A) 直白型；B) 故事型；C) 原文里最有味道的一句。不做标题党、夸张、"震惊"、"必看"。
 
-- A) 直白型：直接说文章讲什么
-- B) 故事型：从一个场景或冲突切入
-- C) 用户原文里的一句话：从草稿里摘最有味道的一句
+### Step 3: 摘要（50–80 字）
 
-不要做：标题党、夸张、"震惊"、"必看"。
+不是第一段的复制；一句话说清读者会获得什么；用作者语气，不是营销腔。
 
-### Step 3: 摘要 (50–80 字)
+### Step 4: 配图（每篇两张，自动生成不问用户）
 
-公众号摘要是发到朋友圈/对话框时的预览。要点：
-
-- 不是文章第一段的复制
-- 一句话说清楚读者会获得什么
-- 用作者的语气，不是营销腔
-
-### Step 4: 配图（每篇两张）
-
-每篇文章配 **两张图**:
-
-- **题图 cover.png** — 进入文章前的封面,**严格 2.35:1**(900×383, 即 900÷383=2.349),进 WeChat 编辑器封面字段。强字体、强构图、文字主导
-- **解释图 illustration.png** — 正文里的配图,**比例由内容决定**(模型自选),帮读者一眼看懂文章核心结构。扁平卡通,有标签和流程
-
-**题图固定走 AI 生成**（不问用户，每张约 $0.05–0.20）：
+- **题图 cover.png** — **严格 2.35:1**（900×383），强字体、强构图、文字主导
+- **解释图 illustration.png** — **比例由内容决定**（模型自选），扁平卡通、有标签和流程
 
 ```bash
-~/.claude/skills/wjs-wechat-publish/gen-cover-ai.sh <article-folder> ["目标字词"]
+~/.claude/skills/wjs-publishing-wechat/scripts/gen-cover-ai.sh <article-folder> ["目标字词"]
+~/.claude/skills/wjs-publishing-wechat/scripts/gen-illustration.sh <article-folder>
 ```
 
-- 不传第二个参数时，从 `meta.json` 取 `title` 当目标字词
-- 内部调用 `gpt-image-2-skill`，**强制走 `--provider codex`**（不再支持 OpenAI API key fallback）
-- 默认尺寸 `1536x1024`（最接近 2.35:1 的 landscape），自动 sips 居中裁到 900×383
-- 原图保存为 `cover-raw.png`，裁剪后是 `cover.png`
-- `cover-prompt.md` 作为 `--instructions`（设计哲学），短生成指令作为 `--prompt`——这样 gpt-5.4 能消化长 prompt 后再调 image_generation 工具
-- 可调环境变量：`WECHAT_PUBLISH_IMAGE_SIZE`（默认 `1536x1024`）、`WECHAT_PUBLISH_IMAGE_QUALITY`（默认 `high`）
+- 不传第二参数时从 `meta.json` 取 `title`；建议挑核心概念字词（1–4 字）
+- 内部走 `gpt-image-2-skill` 的 `--provider codex`，需要 `~/.codex/auth.json`
+- 题图自动裁到 900×383；解释图不裁
 
-**前置依赖**：必须装好 `gpt-image-2-skill`：
+**解释图必须在 markdown 里被引用**——`article.md` 要有 `![](./illustration.png)` 一行，否则草稿里看不到。
 
-```bash
-git clone https://github.com/Wangnov/gpt-image-2-skill /tmp/g
-cp -r /tmp/g/skills/gpt-image-2-skill ~/.claude/skills/
-```
+**⚠️ 正文里除 `cover.png` / `illustration.png` 外的图不会自动上 CDN。** 用户给的本地截图（如 `img-xxx.png`）每张先 `md2wechat upload_image img-xxx.png --json` 拿 `data.wechat_url`，再替换 `article.md` 里的本地路径。验证：`grep -c mmbiz content.html` = 正文图片数，`grep -c 'img-' content.html` = 0。
 
-并且必须有 Codex 鉴权：
-- **唯一支持**：Codex `~/.codex/auth.json`（ChatGPT Plus 计划即可，**不需要 OpenAI 组织验证**，gpt-image-2 的中文字渲染明显比 gpt-image-1 准确）
-- **不再支持** `OPENAI_API_KEY` 直连（`--instructions` 仅 Codex provider 支持，且 API 模式会绕过 Codex 的 prompt 优化）
+默认插入位置：**正文最后落点之后**（有 `## 后注` 放后注前；有 `## 安装方法` 放安装方法前）。
 
-**目标字词**的选择：文章标题往往是长短语（如「AI 能力的三个简单层次」），但 prompt 模板对单字 / 两字词更友好。可以建议用户挑核心概念字词：
+**绝不给解释图写引导语**——不写「整件事画起来是这样」「如图所示」之类，图自己说话。详见 [[no-illustration-caption]]。
 
-> 目标字词用什么？默认是文章标题。建议挑一个核心概念字词（1–4 字），比如「AI 能力的三个简单层次」可以用「三层」或「层次」。
-
-**然后生成解释图**(无需问用户,自动跑):
-
-```bash
-~/.claude/skills/wjs-wechat-publish/gen-illustration.sh <article-folder>
-```
-
-- 读 `article.md` 全文,作为 instructions 传给 gpt-image-2
-- 模型理解文章核心结构后,生成扁平卡通解释图
-- **不裁剪**,模型自选画幅(双行对照通常出 3:2,流程类用横长条,层级深度用竖版)
-- 输出 `illustration.png`,直接用作正文配图
-
-如果用户对某张图不满意,直接重跑对应脚本——每次结果不同。
+> 安全网：`illustration.png` 存在但 `article.md` 没引用时，`upload-draft.sh` 自动插入并改写，幂等。
 
 ### Step 5: 输出文件包
 
-在用户的工作目录下（默认 `~/wechat-publish/articles/`）创建文件夹：
+在工作目录（默认 `~/wechat-publish/articles/`）创建：
 
 ```
 articles/2026-05-09-{slug}/
-├── article.md           # 润色后的 markdown 源文件
-├── article.html         # 转成 HTML，直接粘贴用
-├── cover.png            # 题图 900×383 (2.35:1 严格)
-├── illustration.png     # 解释图（任意比例，模型自选）
+├── article.md           # 润色后的 markdown
+├── cover.png            # 题图 900×383
+├── illustration.png     # 解释图
 ├── meta.json            # { title, summary, author, date, slug }
-└── original.md          # 用户原始输入，备份
+└── original.md          # 用户原始输入
 ```
 
-`{slug}` 从标题生成：拼音首字母 + 关键词，限制 30 字符以内。例如"我的第一台 Mac" → `my-first-mac`。
+`{slug}`：拼音首字母 + 关键词，30 字符内。
 
-**article.html 转换规则：**
-- 用 `pandoc` 或简单的 markdown 解析（不需要复杂样式，公众号编辑器会重新排版）
-- 保留段落分隔（`<p>`）
-- 保留加粗（`<strong>`）和列表
-- 不要内联 CSS——公众号会清掉
+### Step 6: 发布（`upload-draft.sh`）
 
 ```bash
-pandoc article.md -f markdown -t html -o article.html
-# 如果没有 pandoc:
-# 用 Python 的 markdown 包 / Node 的 marked / 或手写最简实现
+~/.claude/skills/wjs-publishing-wechat/scripts/upload-draft.sh <workspace>/articles/YYYY-MM-DD-{slug}
 ```
 
-### Step 6: 发布（用 `upload-draft.sh` 走 md2wechat 底层）
+脚本做的事：
 
-文章包准备好后，跑一行就能把文章作为草稿推到公众号后台：
+1. 跑 `pangu.py` 加盘古之白
+2. `md2wechat upload_image cover.png` → 拿 `thumb_media_id`
+3. `illustration.png` 存在但没引用时自动插入并 upload 拿 CDN URL（幂等安全网）
+4. 从 `article.md` 生成 `content.html`（转换规则见下）
+5. 装 `draft.json`，调 `create_draft` 或（`publish.json` 有 `draft_media_id` 时）`draft/update` 原地更新
+6. macOS / Linux 自动打开 `mp.weixin.qq.com` 草稿箱
+7. 自动 `git add / commit / push` 文章目录到 origin
 
-```bash
-~/.claude/skills/wjs-wechat-publish/upload-draft.sh \
-  <workspace>/articles/YYYY-MM-DD-{slug}
-```
+**article.md 写作约束**（影响 Claude 怎么写；其他 HTML 细节脚本自理）：
 
-脚本内部做了 4 件事（用 `md2wechat` 的低层命令，绕过它高层 `convert` 的 API key 限制）：
+- 支持 `<p>` / `<h2>` / `<h3>` / `<img>` / `<strong>` / `<em>` / `<code>` / `<ul>` / `<ol>` / `<li>` / pipe table
+- **Raw HTML 块透传**：以 `<` 开头的块原样输出，整段必须是一个块，**内部不能有空行**
+- **段内多行 → `<br>` 分行**（用于排比 / 并列短句）：**硬规则：行尾绝不能是逗号「，」**，分行边界只能落在句末标点（。？！）之后
 
-1. `md2wechat upload_image cover.png` → 拿到 `thumb_media_id`
-2. `md2wechat upload_image illustration.png` → 拿到 WeChat CDN `wechat_url`
-3. 从 `article.md` 生成 `content.html`（去掉 frontmatter 和正文 H1，段落加内联样式，`./illustration.png` 替换成 CDN URL），再从 `meta.json` 装出 `draft.json`
-4. `md2wechat create_draft draft.json` → 返回草稿 `media_id`
+**环境变量**：
+- `WECHAT_PUBLISH_FORCE_NEW=1` — 强制建新草稿（不复用 `draft_media_id`）
+- `WECHAT_PUBLISH_NO_OPEN=1` — 不自动打开浏览器
+- `WECHAT_PUBLISH_NO_PUSH=1` — 不自动 push
 
 **前置依赖**：
-- `md2wechat` CLI 已安装并配置好 `WECHAT_APPID` + `WECHAT_SECRET`（`md2wechat config show` 验证）
-- **当前公网 IP 已加进公众号后台白名单**：mp.weixin.qq.com → 设置与开发 → 基本配置 → IP 白名单。漏掉这一步会返回 `errcode=40164`，加白名单几十秒生效
-- 详细命令、provider 选择、品牌档案，参考 `/md2wechat` skill
+- `md2wechat` CLI 装好且 `WECHAT_APPID` + `WECHAT_SECRET` 配好（`md2wechat config show`）
+- **当前公网 IP 在公众号后台白名单**：mp.weixin.qq.com → 设置与开发 → 基本配置 → IP 白名单。漏掉会 `errcode=40164`
 
-**为什么不用 `md2wechat convert --draft`？** 实测发现这条「一键」路径在默认配置下走不通：
-- `--mode api`（默认）需要 `MD2WECHAT_API_KEY`（md2wechat.cn 付费云渲染服务），普通用户没有
-- `--mode ai` 不直接出 HTML，而是返回一份 prompt 让外部 AI 渲染，不闭环
+**常见 errcode**：`40164` IP 不在白名单 ｜ `45004` `summary` 为空 / 太短 ｜ `40007` 老 `draft_media_id` 被删（脚本自动 fallback 建新）。
 
-所以本 skill 用 `upload_image` + `create_draft` 两条底层命令组合，自己拼 HTML 和 draft JSON。`upload-draft.sh` 把这套流程封装成一行。
+成功后到草稿箱 → 手机预览 → 发布。
 
-**Step 6.1 — 可选：先 inspect / preview 检查**
+## 润色启发
 
-```bash
-cd <workspace>/articles/YYYY-MM-DD-{slug}
-md2wechat inspect article.md      # 检查元数据、字数、发布就绪状态
-md2wechat preview article.md      # 生成本地 HTML 预览（degraded 模式，能看个大概）
-```
-
-发布前如想确认元数据有没有超长、摘要是不是空，跑 `inspect`。否则直接跳到 6.2。
-
-**Step 6.2 — 一行发布**
-
-```bash
-~/.claude/skills/wjs-wechat-publish/upload-draft.sh \
-  /Users/jianshuo/code/wechat-publish/articles/YYYY-MM-DD-{slug}
-```
-
-成功后输出 `draft media_id`，并在文章目录里留下 `content.html` 和 `draft.json` 两个产物，便于复查或下次直接 `md2wechat create_draft draft.json` 重发。
-
-**Step 6.3 — 后台预览发布**
-
-登录 https://mp.weixin.qq.com → 草稿箱 → 找到刚上传的文章 → 手机预览 → 发布。
-
-**如果出错**：
-- `errcode=40164 not in whitelist`：把当前公网 IP 加进 WeChat MP 后台白名单
-- `errcode=45004`：`meta.json` 的 `summary` 为空或太短
-- 封面相关：确认 `cover.png` 路径正确、尺寸 ≥ 900×383
-- token / appid：`md2wechat config validate` 看配置
-
-**Optional — 高级排版**：如需第一屏判断、CTA、作者名片等模块，在 `article.md` 加 `:::block` 语法（需要 `MD2WECHAT_API_KEY` 才能渲染）。本 skill 默认不加，保持作者原文清洁。
-
-输出给用户的最后一段话，固定格式：
-
-```
-准备好了。文章在 articles/YYYY-MM-DD-{slug}/
-
-发布（一行）：
-  ~/.claude/skills/wjs-wechat-publish/upload-draft.sh \
-    articles/YYYY-MM-DD-{slug}
-
-成功后到 mp.weixin.qq.com 草稿箱预览 / 发布。
-
-article.md 是源文件，下次改用这个。
-```
-
-## File Layout (skill 自身)
-
-```
-~/.claude/skills/wjs-wechat-publish/
-├── SKILL.md                       # 本文件
-├── cover-prompt.md                # AI 题图 prompt 模板（[目标字词] 占位符）
-├── gen-cover-ai.sh                # 题图: 2.35:1 强约束, 自动裁到 900×383
-├── illustration-prompt.md         # AI 解释图 prompt 模板（[文章内容] 占位符）
-├── gen-illustration.sh            # 解释图: 比例自适应, 不裁剪
-└── upload-draft.sh                # Step 6 主路径：upload_image × 2 + create_draft
-```
-
-依赖的外部 skill：
-- `gpt-image-2-skill`（github.com/Wangnov/gpt-image-2-skill）—— gen-cover-ai.sh / gen-illustration.sh 走这里调 gpt-image-2，**只走 `--provider codex`**（两个脚本已硬编码），需要 `~/.codex/auth.json`。不支持 OpenAI API key 直连
-- `/md2wechat` skill / `md2wechat` CLI —— upload-draft.sh 用它的 `upload_image` + `create_draft` 命令（需要 `WECHAT_APPID` / `WECHAT_SECRET`，且当前 IP 在白名单里）
-
-> 注：仓库里仍保留 `publish.sh`（浏览器 + 剪贴板手动发布流），仅作为 md2wechat 配置未就绪 / 不能加 IP 白名单时的备用方案。本 skill 默认路径不再使用它。
-
-> Auto-publish: 本 skill 由 `~/.claude/skills-publish-hook.sh` 自动同步到 [github.com/jianshuo/claude-skills](https://github.com/jianshuo/claude-skills)（每次编辑后自动 commit + push）。
-
-## Polish Heuristics (具体到字)
-
-错字模式 → 改：
-- "的得地" 误用：根据语法判断
+错字模式：
+- "的得地"误用（按语法）
 - 重复字："我我"、"是是"、"了了" → 删一个
-- 同音字：考虑上下文（"在"vs"再"，"做"vs"作"）
+- 同音字（"在" vs "再"，"做" vs "作"）
 
-段落切分时机：
+分段时机：
 - 一句话讲完一个意思，下一句换主语 → 分段
-- 出现"但是"、"不过"、"所以"、"后来"在句首 → 考虑分段
-- 一段超过 80 字 → 找最近的句号分
+- 句首出现"但是 / 不过 / 所以 / 后来" → 考虑分段
+- 一段超过 80 字 → 找最近句号分
 
-不要分段：
-- 排比句、列举（保持节奏）
-- 对话（按对话格式）
+不分段：排比句、列举、对话（按对话格式）。
 
-## Anti-Patterns (绝对不做)
+## 不要这么做
 
 | 不要 | 原因 |
 |------|------|
-| 把"我觉得"改成"笔者认为" | 改变了作者身份 |
-| 加"小标题"打断行文 | 微信读者不需要导航 |
-| 把口语句尾"吧/呢/啊"删掉 | 删掉就不是这个人写的了 |
-| 在结尾加"欢迎关注"、"点赞在看" | 作者会自己决定要不要 |
-| 把"今天"改成具体日期 | 作者用"今天"是有意为之 |
+| "我觉得" → "笔者认为" | 改变作者身份 |
+| 加小标题打断行文 | 微信读者不需要导航 |
+| 删句尾"吧/呢/啊" | 删了就不是这个人写的 |
+| 加"欢迎关注 / 点赞在看" | 作者自己决定 |
+| "今天" → 具体日期 | 作者用"今天"是有意为之 |
 | 自己加举例 / 引用 / 数据 | 这是写作，不是补全 |
-| 改动后没给 diff，直接全文输出 | 用户看不见你改了什么 |
+| 改完没给 diff 直接全文输出 | 用户看不见你改了什么 |
+| 文章超过 1500 字 | 多半某段空例子在撑场，砍掉它 |
+| 为演示框架编一段完整例子 | 让 `illustration.png` 承担 |
 
-## Showing the Diff
+## 先给改动清单
 
-每次润色完，**先告诉用户你改了什么**，再问要不要继续：
+润色完**先告诉用户改了什么**，再问要不要继续：
 
 ```
 我改了 7 处：
 1. L3: "我我觉得" → "我觉得"（重复字）
 2. L8: 长段落 (120字) 拆成两段
-3. L15: "通过…的方式" → "用…"（口语化保留）
 ...
 
 要看完整结果吗？
 ```
 
-如果改动 ≤ 3 处，可以直接给完整结果，不用列 diff。
+改动 ≤ 3 处可直接给完整结果。
 
-## Running the Skill (实操步骤)
+依赖外部 skill：`gpt-image-2-skill`（cover/illustration 生成）+ `/md2wechat`（upload + draft）。
 
-1. 确认工作目录（默认 `~/wechat-publish/`，可由用户配置）
-2. 接收用户输入（粘贴或文件）
-3. 写 `original.md`（用户原始输入）
-4. 写 `article.md`（润色版）→ 列 diff 给用户
-5. 用 AskUserQuestion 问标题候选
-6. 自动跑 gen-cover-ai.sh 生成题图 + gen-illustration.sh 生成解释图（不问用户）
-7. 生成 `article.html`、`meta.json`
-8. 输出发布指引
-
-## Done When
+## 完成标准
 
 - [ ] `articles/YYYY-MM-DD-{slug}/` 文件夹存在
-- [ ] 包含 article.md、article.html、cover.png、meta.json、original.md
+- [ ] 含 article.md、cover.png、illustration.png、meta.json、original.md
 - [ ] meta.json 字段齐全
-- [ ] 用户拿到了发布指引
+- [ ] 草稿在 mp.weixin.qq.com 后台可见
 - [ ] 用户没说"再改改"
