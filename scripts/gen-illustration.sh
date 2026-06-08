@@ -42,7 +42,7 @@ print(template.replace('[文章内容]', article))
 GEN_PROMPT="根据 instructions 中的文章内容,生成一张扁平卡通风格的解释图。画幅比例由内容决定 (双行对照用 3:2 / 4:3, 单行流程用横长条, 层级深度用竖版), 选最易读的版本。把文章的核心层级 / 对比 / 递进结构可视化,让读者一眼看懂。中文标签必须准确无伪字。"
 
 OUT="${ARTICLE_DIR}/illustration.png"
-SIZE="${WECHAT_PUBLISH_IMAGE_SIZE:-1024x1024}"
+SIZE="${WECHAT_PUBLISH_IMAGE_SIZE:-1536x1024}"
 QUALITY="${WECHAT_PUBLISH_IMAGE_QUALITY:-high}"
 
 echo "calling gpt-image-2-skill (illustration, size: $SIZE, quality: $QUALITY)" >&2
@@ -67,6 +67,10 @@ if [[ ! -s "$OUT" ]]; then
   echo "$RESULT" | tail -20 >&2
   exit 1
 fi
+
+# Resize to 1024 wide (proportional), then center-crop to 576 tall → 1024×576 (16:9)
+sips --resampleWidth 1024 "$OUT" --out "$OUT" >/dev/null 2>&1
+sips -c 576 1024 "$OUT" --out "$OUT" >/dev/null 2>&1
 
 # Read actual dimensions for the report
 DIMS=$(sips -g pixelWidth -g pixelHeight "$OUT" | grep -E "pixel" | awk '{print $2}' | paste -sd "x" -)
